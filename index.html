@@ -3,46 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Acosta | Pixel 9 Edition</title>
+    <title>Acosta | AR Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Bloqueo total para Pixel 9 */
         html, body { 
             margin: 0; padding: 0; overflow: hidden; 
             width: 100vw; height: 100vh; background: #000;
             position: fixed; top: 0; left: 0;
         }
-        
         #app { position: relative; width: 100%; height: 100%; }
-        
         video { width: 100%; height: 100%; object-fit: cover; }
 
-        /* CALIBRACIÓN PIXEL 9: Anclaje inferior absoluto */
+        /* CAPA DE PISO DINÁMICA */
         #floor-layer { 
             position: absolute; 
-            bottom: -10vh; /* Bajamos el origen para que salga desde el borde real */
+            bottom: -20vh; 
             left: -100vw; 
             width: 300vw; 
-            height: 120vh; /* Altura extra para cubrir el fondo */
-            background-image: url('marmol.jpg');
+            height: 150vh; 
+            background-image: url('marmol.jpg'); /* Asegúrate que el archivo esté en la misma carpeta */
             background-repeat: repeat;
-            background-size: 380px; 
-            /* Perspectiva ajustada para lentes gran angular de Pixel */
-            transform: perspective(400px) rotateX(84deg);
+            background-size: 400px; 
+            transform: perspective(600px) rotateX(80deg);
             transform-origin: bottom center;
             pointer-events: none;
             opacity: 0.7;
             z-index: 5;
-            /* Degradado Pro */
-            -webkit-mask-image: linear-gradient(to top, 
-                rgba(0,0,0,1) 0%, 
-                rgba(0,0,0,1) 25%, 
-                rgba(0,0,0,0) 80%);
-            mask-image: linear-gradient(to top, 
-                rgba(0,0,0,1) 0%, 
-                rgba(0,0,0,1) 25%, 
-                rgba(0,0,0,0) 80%);
-            filter: contrast(1.1) brightness(1.1);
+            transition: transform 0.1s ease-out; /* Suavizado para el giroscopio */
+            -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0) 90%);
         }
 
         .ui-panel {
@@ -51,20 +39,24 @@
             background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
             z-index: 50;
         }
+
+        /* Estado bloqueado */
+        .locked { opacity: 0.5; pointer-events: none; filter: grayscale(1); }
     </style>
 </head>
 <body>
 
     <div id="app">
-        <video id="webcam" autoplay playsinline></video>
+        <!-- Muted es vital para que auto-reproduzca en todos los móviles -->
+        <video id="webcam" autoplay playsinline muted></video>
         <div id="floor-layer"></div>
 
         <div class="absolute top-12 w-full text-center z-50 pointer-events-none">
             <h1 class="text-white font-black tracking-[0.5em] text-2xl opacity-80">ACOSTA</h1>
-            <p class="text-yellow-500 text-[10px] font-bold mt-2">PIXEL 9 OPTIMIZED</p>
+            <p id="status-tag" class="text-yellow-500 text-[10px] font-bold mt-2 uppercase">Sensor Gyro Activo</p>
         </div>
 
-        <div class="ui-panel space-y-6">
+        <div id="controls" class="ui-panel space-y-6">
             <div class="bg-black/60 backdrop-blur-xl p-5 rounded-[2.5rem] border border-white/10 shadow-2xl">
                 <div class="flex items-center justify-between mb-4">
                     <span class="text-white text-[10px] font-bold uppercase tracking-widest">Realismo</span>
@@ -87,27 +79,66 @@
 
     <script>
         const floor = document.getElementById('floor-layer');
-        let currentZoom = 380;
+        const controls = document.getElementById('controls');
+        const lockBtn = document.getElementById('lock-btn');
+        let currentZoom = 400;
         let currentRot = 0;
+        let baseTilt = 80;
 
-        // Cámara Trasera con alta resolución para Pixel 9
+        // 1. CÁMARA OPTIMIZADA
         async function initCamera() {
+            const constraints = { 
+                video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } 
+            };
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: { exact: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } 
-                });
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 document.getElementById('webcam').srcObject = stream;
             } catch (e) {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                document.getElementById('webcam').srcObject = stream;
+                console.error("Error cámara:", e);
+                alert("Activa los permisos de cámara para la experiencia AR.");
             }
         }
 
+        // 2. GIROSCOPIO (Efecto AR Real)
+        // El Pixel 9 tiene sensores muy precisos. Esto ajusta la inclinación del piso.
+        window.addEventListener('deviceorientation', (event) => {
+            // beta es la inclinación adelante/atrás (-180 a 180)
+            let tilt = event.beta; 
+            if (tilt > 40 && tilt < 90) { // Rango normal de sostener un cel
+                let adjustedTilt = 90 - (tilt * 0.1); // Ajuste fino de perspectiva
+                floor.style.transform = `perspective(600px) rotateX(${tilt}deg) rotateZ(${currentRot}deg)`;
+            }
+        });
+
         function zoomIn() {
-            currentZoom = currentZoom >= 800 ? 200 : currentZoom + 150;
+            currentZoom = currentZoom >= 1000 ? 200 : currentZoom + 200;
             floor.style.backgroundSize = `${currentZoom}px`;
         }
 
         function rotate() {
             currentRot += 90;
-            floor.style.transform = `perspective(400px) rotateX(
+            floor.style.transform = `perspective(600px) rotateX(80deg) rotateZ(${currentRot}deg)`;
+        }
+
+        // 3. REGLA DE SEGURIDAD ACOSTA (Bloqueo 20s)
+        function lockUI() {
+            controls.classList.add('locked');
+            lockBtn.innerText = "BLOQUEADO POR SEGURIDAD (20S)";
+            
+            let timeLeft = 20;
+            const timer = setInterval(() => {
+                timeLeft--;
+                lockBtn.innerText = `BLOQUEADO (${timeLeft}S)`;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    controls.classList.remove('locked');
+                    lockBtn.innerText = "Fijar Vista Acosta";
+                    lockBtn.style.backgroundColor = "white";
+                }
+            }, 1000);
+        }
+
+        initCamera();
+    </script>
+</body>
+</html>
