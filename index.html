@@ -2,100 +2,112 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Visualizador Acosta | Calibrado</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Acosta | Pixel 9 Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; position: fixed; width: 100%; height: 100%; }
+        /* Bloqueo total para Pixel 9 */
+        html, body { 
+            margin: 0; padding: 0; overflow: hidden; 
+            width: 100vw; height: 100vh; background: #000;
+            position: fixed; top: 0; left: 0;
+        }
         
-        #app-viewport { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+        #app { position: relative; width: 100%; height: 100%; }
         
         video { width: 100%; height: 100%; object-fit: cover; }
 
-        /* AJUSTE DE PRECISIÓN ACOSTA */
+        /* CALIBRACIÓN PIXEL 9: Anclaje inferior absoluto */
         #floor-layer { 
             position: absolute; 
-            /* Bajamos el inicio del piso para que no flote */
-            bottom: -5%; 
-            left: -50%; 
-            width: 200%; 
-            height: 100%; 
+            bottom: -10vh; /* Bajamos el origen para que salga desde el borde real */
+            left: -100vw; 
+            width: 300vw; 
+            height: 120vh; /* Altura extra para cubrir el fondo */
             background-image: url('marmol.jpg');
             background-repeat: repeat;
-            /* Tamaño inicial optimizado para tu imagen de mármol */
-            background-size: 350px; 
-            /* Perspectiva más baja para cubrir el suelo real */
-            transform: perspective(600px) rotateX(80deg);
+            background-size: 380px; 
+            /* Perspectiva ajustada para lentes gran angular de Pixel */
+            transform: perspective(400px) rotateX(84deg);
             transform-origin: bottom center;
             pointer-events: none;
-            opacity: 0.65;
-            z-index: 10;
-            -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%);
-            mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%);
+            opacity: 0.7;
+            z-index: 5;
+            /* Degradado Pro */
+            -webkit-mask-image: linear-gradient(to top, 
+                rgba(0,0,0,1) 0%, 
+                rgba(0,0,0,1) 25%, 
+                rgba(0,0,0,0) 80%);
+            mask-image: linear-gradient(to top, 
+                rgba(0,0,0,1) 0%, 
+                rgba(0,0,0,1) 25%, 
+                rgba(0,0,0,0) 80%);
+            filter: contrast(1.1) brightness(1.1);
         }
 
-        .glass-panel {
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            z-index: 20;
+        .ui-panel {
+            position: absolute; bottom: 0; width: 100%;
+            padding: 2rem 1.5rem;
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+            z-index: 50;
         }
     </style>
 </head>
 <body>
 
-    <div id="app-viewport">
+    <div id="app">
         <video id="webcam" autoplay playsinline></video>
-        
         <div id="floor-layer"></div>
 
-        <div class="absolute top-10 w-full text-center z-30 pointer-events-none">
-            <h1 class="text-white font-black text-2xl tracking-[0.4em] drop-shadow-2xl">ACOSTA</h1>
-            <p class="text-yellow-500 text-[10px] font-bold tracking-[0.2em] mt-1">CALIBRACIÓN DE PISO</p>
+        <div class="absolute top-12 w-full text-center z-50 pointer-events-none">
+            <h1 class="text-white font-black tracking-[0.5em] text-2xl opacity-80">ACOSTA</h1>
+            <p class="text-yellow-500 text-[10px] font-bold mt-2">PIXEL 9 OPTIMIZED</p>
         </div>
 
-        <div class="absolute bottom-6 w-full px-4 z-40">
-            <div class="glass-panel p-4 rounded-3xl">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-white text-[10px] font-bold uppercase">Realismo</span>
-                    <input type="range" min="0.1" max="0.9" step="0.05" value="0.65" 
-                           class="w-40 h-1.5 bg-gray-700 rounded-lg appearance-none accent-yellow-500"
+        <div class="ui-panel space-y-6">
+            <div class="bg-black/60 backdrop-blur-xl p-5 rounded-[2.5rem] border border-white/10 shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-white text-[10px] font-bold uppercase tracking-widest">Realismo</span>
+                    <input type="range" min="0.1" max="0.95" step="0.05" value="0.7" 
+                           class="w-2/3 h-1.5 bg-gray-700 rounded-lg appearance-none accent-yellow-500"
                            oninput="document.getElementById('floor-layer').style.opacity = this.value">
                 </div>
                 
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="rotateTile()" class="bg-white/10 text-white text-[10px] py-3 rounded-xl border border-white/10 uppercase font-bold">
-                        🔄 Girar Veta
-                    </button>
-                    <button onclick="zoomTile()" class="bg-white/10 text-white text-[10px] py-3 rounded-xl border border-white/10 uppercase font-bold">
-                        🔍 Tamaño
-                    </button>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="zoomIn()" class="bg-white/5 text-white text-[10px] py-4 rounded-2xl border border-white/10 font-bold active:bg-white/20">ESCAMA</button>
+                    <button onclick="rotate()" class="bg-white/5 text-white text-[10px] py-4 rounded-2xl border border-white/10 font-bold active:bg-white/20">ROTAR</button>
                 </div>
             </div>
+            
+            <button id="lock-btn" onclick="lockUI()" class="w-full bg-white text-black font-black py-5 rounded-[2rem] text-[11px] uppercase tracking-[0.2em] shadow-white/10 shadow-2xl active:scale-95 transition-all">
+                Fijar Vista Acosta
+            </button>
         </div>
     </div>
 
     <script>
         const floor = document.getElementById('floor-layer');
-        let rotation = 0;
-        let zoom = 350;
+        let currentZoom = 380;
+        let currentRot = 0;
 
-        // Forzar cámara trasera
-        navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: { exact: "environment" } } 
-        }).then(s => document.getElementById('webcam').srcObject = s)
-          .catch(e => navigator.mediaDevices.getUserMedia({ video: true })
-          .then(s => document.getElementById('webcam').srcObject = s));
-
-        function rotateTile() {
-            rotation += 90;
-            floor.style.transform = `perspective(600px) rotateX(80deg) rotateZ(${rotation}deg)`;
+        // Cámara Trasera con alta resolución para Pixel 9
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: { exact: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } 
+                });
+                document.getElementById('webcam').srcObject = stream;
+            } catch (e) {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                document.getElementById('webcam').srcObject = stream;
+            }
         }
 
-        function zoomTile() {
-            zoom = zoom >= 600 ? 250 : zoom + 150;
-            floor.style.backgroundSize = `${zoom}px`;
+        function zoomIn() {
+            currentZoom = currentZoom >= 800 ? 200 : currentZoom + 150;
+            floor.style.backgroundSize = `${currentZoom}px`;
         }
-    </script>
-</body>
-</html>
+
+        function rotate() {
+            currentRot += 90;
+            floor.style.transform = `perspective(400px) rotateX(
