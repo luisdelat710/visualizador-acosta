@@ -3,51 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Visualizador Acosta | Oficial</title>
+    <title>Visualizador Acosta | Calibrado</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
+        body { margin: 0; overflow: hidden; background: #000; position: fixed; width: 100%; height: 100%; }
         
-        #app-viewport { position: relative; width: 100vw; height: 100vh; }
+        #app-viewport { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
         
-        /* Video de la cámara */
         video { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Capa del Piso Digital con Perspectiva Acosta */
+        /* AJUSTE DE PRECISIÓN ACOSTA */
         #floor-layer { 
             position: absolute; 
-            bottom: 0; 
-            left: -100%; 
-            width: 300%; 
-            height: 85%; 
+            /* Bajamos el inicio del piso para que no flote */
+            bottom: -5%; 
+            left: -50%; 
+            width: 200%; 
+            height: 100%; 
             background-image: url('marmol.jpg');
             background-repeat: repeat;
-            /* Ajustado para que el mármol no se vea pequeño (formato grande) */
-            background-size: 550px; 
-            /* El ángulo de 75deg simula el suelo visto desde la altura de los ojos */
-            transform: perspective(900px) rotateX(75deg);
-            transform-origin: bottom;
+            /* Tamaño inicial optimizado para tu imagen de mármol */
+            background-size: 350px; 
+            /* Perspectiva más baja para cubrir el suelo real */
+            transform: perspective(600px) rotateX(80deg);
+            transform-origin: bottom center;
             pointer-events: none;
-            opacity: 0.75;
-            transition: opacity 0.3s ease, background-size 0.3s ease;
-            /* Máscara para que el piso se desvanezca al fondo y no se vea el "corte" */
-            -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 10%, rgba(0,0,0,0) 85%);
-            mask-image: linear-gradient(to top, rgba(0,0,0,1) 10%, rgba(0,0,0,0) 85%);
-            filter: brightness(1.05) contrast(1.1);
+            opacity: 0.65;
+            z-index: 10;
+            -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%);
+            mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 100%);
         }
 
-        /* Estilo para el panel de control */
         .glass-panel {
-            background: rgba(15, 15, 15, 0.7);
-            backdrop-filter: blur(12px);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        /* Animación para el botón cuando está bloqueado */
-        .btn-locked {
-            background-color: #374151 !important;
-            cursor: not-allowed;
-            opacity: 0.6;
+            z-index: 20;
         }
     </style>
 </head>
@@ -58,97 +49,53 @@
         
         <div id="floor-layer"></div>
 
-        <div class="absolute top-10 w-full text-center pointer-events-none">
+        <div class="absolute top-10 w-full text-center z-30 pointer-events-none">
             <h1 class="text-white font-black text-2xl tracking-[0.4em] drop-shadow-2xl">ACOSTA</h1>
-            <p class="text-yellow-500 text-[10px] font-bold tracking-[0.2em] uppercase mt-1">Fresnillo, Zacatecas</p>
+            <p class="text-yellow-500 text-[10px] font-bold tracking-[0.2em] mt-1">CALIBRACIÓN DE PISO</p>
         </div>
 
-        <div class="absolute bottom-8 w-full px-6 space-y-4">
-            
-            <div class="glass-panel p-5 rounded-[2rem] shadow-2xl">
-                <div class="flex justify-between items-center mb-3">
-                    <span class="text-white text-[11px] font-bold tracking-wider uppercase">Ajuste de Realismo</span>
-                    <span id="val-display" class="text-yellow-500 text-xs font-mono">75%</span>
+        <div class="absolute bottom-6 w-full px-4 z-40">
+            <div class="glass-panel p-4 rounded-3xl">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-white text-[10px] font-bold uppercase">Realismo</span>
+                    <input type="range" min="0.1" max="0.9" step="0.05" value="0.65" 
+                           class="w-40 h-1.5 bg-gray-700 rounded-lg appearance-none accent-yellow-500"
+                           oninput="document.getElementById('floor-layer').style.opacity = this.value">
                 </div>
-                <input type="range" min="0.1" max="0.95" step="0.01" value="0.75" 
-                       class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
-                       oninput="adjustRealism(this.value)">
                 
-                <div class="flex justify-between mt-4">
-                    <button onclick="rotateTile()" class="text-white text-[10px] bg-white/10 px-4 py-2 rounded-lg border border-white/5 active:scale-95 transition-all">
-                        🔄 ROTAR AZULEJO
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="rotateTile()" class="bg-white/10 text-white text-[10px] py-3 rounded-xl border border-white/10 uppercase font-bold">
+                        🔄 Girar Veta
                     </button>
-                    <button onclick="zoomTile()" class="text-white text-[10px] bg-white/10 px-4 py-2 rounded-lg border border-white/5 active:scale-95 transition-all">
-                        🔍 ZOOM
+                    <button onclick="zoomTile()" class="bg-white/10 text-white text-[10px] py-3 rounded-xl border border-white/10 uppercase font-bold">
+                        🔍 Tamaño
                     </button>
                 </div>
             </div>
-
-            <button id="action-btn" onclick="handleAction()" 
-                    class="w-full bg-yellow-500 text-black font-black py-4 rounded-2xl text-xs tracking-[0.2em] uppercase shadow-xl transition-all active:scale-95">
-                Fijar Diseño
-            </button>
         </div>
     </div>
 
     <script>
         const floor = document.getElementById('floor-layer');
-        const valDisplay = document.getElementById('val-display');
-        const actionBtn = document.getElementById('action-btn');
-        let currentRotation = 0;
-        let currentZoom = 550;
+        let rotation = 0;
+        let zoom = 350;
 
-        // 1. Activar Cámara Principal (Trasera)
-        async function startCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: { exact: "environment" } } 
-                });
-                document.getElementById('webcam').srcObject = stream;
-            } catch (err) {
-                // Si es PC o no detecta trasera, usa la disponible
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                document.getElementById('webcam').srcObject = stream;
-            }
-        }
+        // Forzar cámara trasera
+        navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: { exact: "environment" } } 
+        }).then(s => document.getElementById('webcam').srcObject = s)
+          .catch(e => navigator.mediaDevices.getUserMedia({ video: true })
+          .then(s => document.getElementById('webcam').srcObject = s));
 
-        // 2. Ajustar Opacidad (Mezcla con sombras reales)
-        function adjustRealism(val) {
-            floor.style.opacity = val;
-            valDisplay.innerText = Math.round(val * 100) + "%";
-        }
-
-        // 3. Rotar imagen (90 en 90 grados)
         function rotateTile() {
-            currentRotation += 90;
-            floor.style.transform = `perspective(900px) rotateX(75deg) rotateZ(${currentRotation}deg)`;
+            rotation += 90;
+            floor.style.transform = `perspective(600px) rotateX(80deg) rotateZ(${rotation}deg)`;
         }
 
-        // 4. Cambiar escala (Zoom)
         function zoomTile() {
-            currentZoom = currentZoom === 550 ? 350 : (currentZoom === 350 ? 800 : 550);
-            floor.style.backgroundSize = `${currentZoom}px`;
+            zoom = zoom >= 600 ? 250 : zoom + 150;
+            floor.style.backgroundSize = `${zoom}px`;
         }
-
-        // 5. Lógica Acosta: Bloqueo de 20s para evitar saturación de procesos
-        function handleAction() {
-            actionBtn.disabled = true;
-            actionBtn.classList.add('btn-locked');
-            const originalText = actionBtn.innerText;
-            actionBtn.innerText = "DISEÑO GUARDADO";
-            
-            // Simulación de guardado/log
-            console.log("Evento registrado a las 12:00 PM (Hora Acosta)");
-
-            setTimeout(() => {
-                actionBtn.disabled = false;
-                actionBtn.classList.remove('btn-locked');
-                actionBtn.innerText = originalText;
-            }, 20000); // 20 segundos de bloqueo
-        }
-
-        // Iniciar al cargar
-        startCamera();
     </script>
 </body>
 </html>
