@@ -2,60 +2,153 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualizador Acosta</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Visualizador Acosta | Oficial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { margin: 0; font-family: sans-serif; background: #000; color: white; overflow: hidden; }
-        #camera-container { position: relative; width: 100vw; height: 100vh; }
-        video { width: 100%; height: 100%; object-fit: cover; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
         
-        /* Esta es la capa que pone el piso */
-        #overlay-floor { 
+        #app-viewport { position: relative; width: 100vw; height: 100vh; }
+        
+        /* Video de la cámara */
+        video { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Capa del Piso Digital con Perspectiva Acosta */
+        #floor-layer { 
             position: absolute; 
-            bottom: 0; left: 0; width: 100%; height: 60%; 
-            background-image: url('marmol.jpg'); 
+            bottom: 0; 
+            left: -100%; 
+            width: 300%; 
+            height: 85%; 
+            background-image: url('marmol.jpg');
             background-repeat: repeat;
-            background-size: 200px; /* Ajusta el tamaño del azulejo */
-            opacity: 0.7; 
-            /* Esto crea la perspectiva para que parezca suelo */
-            transform: perspective(600px) rotateX(45deg);
+            /* Ajustado para que el mármol no se vea pequeño (formato grande) */
+            background-size: 550px; 
+            /* El ángulo de 75deg simula el suelo visto desde la altura de los ojos */
+            transform: perspective(900px) rotateX(75deg);
             transform-origin: bottom;
             pointer-events: none;
-            mask-image: linear-gradient(to top, rgba(0,0,0,1), rgba(0,0,0,0));
+            opacity: 0.75;
+            transition: opacity 0.3s ease, background-size 0.3s ease;
+            /* Máscara para que el piso se desvanezca al fondo y no se vea el "corte" */
+            -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 10%, rgba(0,0,0,0) 85%);
+            mask-image: linear-gradient(to top, rgba(0,0,0,1) 10%, rgba(0,0,0,0) 85%);
+            filter: brightness(1.05) contrast(1.1);
         }
 
-        .controls { 
-            position: absolute; bottom: 20px; left: 0; width: 100%; 
-            display: flex; justify-content: center; gap: 15px; z-index: 10;
+        /* Estilo para el panel de control */
+        .glass-panel {
+            background: rgba(15, 15, 15, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .tile-option { 
-            width: 70px; height: 70px; border: 3px solid #fff; border-radius: 10px; 
-            object-fit: cover; cursor: pointer; background: #333;
+
+        /* Animación para el botón cuando está bloqueado */
+        .btn-locked {
+            background-color: #374151 !important;
+            cursor: not-allowed;
+            opacity: 0.6;
         }
     </style>
 </head>
 <body>
-    <div id="camera-container">
-        <video id="webcam" autoplay playsinline></video>
-        <div id="overlay-floor"></div>
-    </div>
 
-    <div class="controls">
-        <img src="marmol.jpg" class="tile-option" onclick="changeTile('marmol.jpg')">
-        <img src="beige.jpg" class="tile-option" onclick="changeTile('beige.jpg')">
+    <div id="app-viewport">
+        <video id="webcam" autoplay playsinline></video>
+        
+        <div id="floor-layer"></div>
+
+        <div class="absolute top-10 w-full text-center pointer-events-none">
+            <h1 class="text-white font-black text-2xl tracking-[0.4em] drop-shadow-2xl">ACOSTA</h1>
+            <p class="text-yellow-500 text-[10px] font-bold tracking-[0.2em] uppercase mt-1">Fresnillo, Zacatecas</p>
+        </div>
+
+        <div class="absolute bottom-8 w-full px-6 space-y-4">
+            
+            <div class="glass-panel p-5 rounded-[2rem] shadow-2xl">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-white text-[11px] font-bold tracking-wider uppercase">Ajuste de Realismo</span>
+                    <span id="val-display" class="text-yellow-500 text-xs font-mono">75%</span>
+                </div>
+                <input type="range" min="0.1" max="0.95" step="0.01" value="0.75" 
+                       class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
+                       oninput="adjustRealism(this.value)">
+                
+                <div class="flex justify-between mt-4">
+                    <button onclick="rotateTile()" class="text-white text-[10px] bg-white/10 px-4 py-2 rounded-lg border border-white/5 active:scale-95 transition-all">
+                        🔄 ROTAR AZULEJO
+                    </button>
+                    <button onclick="zoomTile()" class="text-white text-[10px] bg-white/10 px-4 py-2 rounded-lg border border-white/5 active:scale-95 transition-all">
+                        🔍 ZOOM
+                    </button>
+                </div>
+            </div>
+
+            <button id="action-btn" onclick="handleAction()" 
+                    class="w-full bg-yellow-500 text-black font-black py-4 rounded-2xl text-xs tracking-[0.2em] uppercase shadow-xl transition-all active:scale-95">
+                Fijar Diseño
+            </button>
+        </div>
     </div>
 
     <script>
-        const video = document.getElementById('webcam');
-        const overlay = document.getElementById('overlay-floor');
+        const floor = document.getElementById('floor-layer');
+        const valDisplay = document.getElementById('val-display');
+        const actionBtn = document.getElementById('action-btn');
+        let currentRotation = 0;
+        let currentZoom = 550;
 
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-            .then(stream => { video.srcObject = stream; })
-            .catch(err => console.error("Error cámara:", err));
-
-        function changeTile(src) {
-            overlay.style.backgroundImage = `url(${src})`;
+        // 1. Activar Cámara Principal (Trasera)
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: { exact: "environment" } } 
+                });
+                document.getElementById('webcam').srcObject = stream;
+            } catch (err) {
+                // Si es PC o no detecta trasera, usa la disponible
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                document.getElementById('webcam').srcObject = stream;
+            }
         }
+
+        // 2. Ajustar Opacidad (Mezcla con sombras reales)
+        function adjustRealism(val) {
+            floor.style.opacity = val;
+            valDisplay.innerText = Math.round(val * 100) + "%";
+        }
+
+        // 3. Rotar imagen (90 en 90 grados)
+        function rotateTile() {
+            currentRotation += 90;
+            floor.style.transform = `perspective(900px) rotateX(75deg) rotateZ(${currentRotation}deg)`;
+        }
+
+        // 4. Cambiar escala (Zoom)
+        function zoomTile() {
+            currentZoom = currentZoom === 550 ? 350 : (currentZoom === 350 ? 800 : 550);
+            floor.style.backgroundSize = `${currentZoom}px`;
+        }
+
+        // 5. Lógica Acosta: Bloqueo de 20s para evitar saturación de procesos
+        function handleAction() {
+            actionBtn.disabled = true;
+            actionBtn.classList.add('btn-locked');
+            const originalText = actionBtn.innerText;
+            actionBtn.innerText = "DISEÑO GUARDADO";
+            
+            // Simulación de guardado/log
+            console.log("Evento registrado a las 12:00 PM (Hora Acosta)");
+
+            setTimeout(() => {
+                actionBtn.disabled = false;
+                actionBtn.classList.remove('btn-locked');
+                actionBtn.innerText = originalText;
+            }, 20000); // 20 segundos de bloqueo
+        }
+
+        // Iniciar al cargar
+        startCamera();
     </script>
 </body>
 </html>
